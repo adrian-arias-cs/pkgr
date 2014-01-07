@@ -113,16 +113,7 @@ pkg_new_release()
     local pkg="$1"
     local ver="$2"
     local aptrc=''
-
-    pushd ${BUILDROOT} > /dev/null
-
-    apt-get source ${pkg}
-    aptrc=$?
-    if [ $aptrc -ne 0 ] ; then
-        die "*** unable to install source package for ${pkg} ***"
-    fi
-
-    popd > /dev/null
+    local prever=''
 
     pushd "${SOURCESDIR}/${pkg}" > /dev/null
 
@@ -132,12 +123,46 @@ pkg_new_release()
     # create lzma compressed tarball of orig upstream release
     create_orig_tarball "${pkg}" "${ver}"
 
+    prever=`get_previous_version`
     popd > /dev/null
 
     # unpack debian tarball from previous version into build_dir
+
+    pushd ${PKGSTORE}/ > /dev/null
+
+    local pv=`echo "${prever}" | awk -F'-' '{print $1}'`
+    local pr=`echo "${prever}" | awk -F'-' '{print $2}'`
+    tar xzvf "${pkg}_${pv}~${pr}-1.debian.tar.gz" -C ${build_dir}/ > /dev/null
+
+    popd > /dev/null
+
+    pushd ${build_dir}/debian > /dev/null
+
+    # the trailing "-1" represents the package build version.
+    # this should be incremented each time changes are made to the
+    # debian files.
+    dch -v "${version}~${rc}-1"
+    popd > /dev/null
     # version bump the changelog
 
 #    export_ref "${pkg}" "${ver}"
+}
+
+get_previous_version()
+{
+    # local rel=`git tag | grep -e '^\([[:digit:]]\)\{1,2\}.\([[:digit:]]\)\{1,2\}.\([[:digit:]]\)\{1,3\}\(-rc[[:digit:]]\+\)\?$' | 
+    #     sort -r | head -n 2 | xargs | awk -F' ' '{print $2}'`
+
+    local rel=`git tag | grep -e '^\([[:digit:]]\)\{1,2\}.\([[:digit:]]\)\{1,2\}.\([[:digit:]]\)\{1,3\}\(-rc[[:digit:]]\+\)\?$' | 
+        sort -r | awk '{
+            if (system("dpkg --compare-versions "$1" le '${ver}'") == 0)
+            {
+                    print $1
+            }
+        }' | head -n 2 | xargs | awk '{print $2}'`
+
+    echo "${rel}"
+    return 0
 }
 
 get_commit_msgs_between_two_greatest_tags()
