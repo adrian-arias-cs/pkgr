@@ -144,12 +144,16 @@ pkg_new_release()
     # debian files.
     dch -v "${version}~${rc}-1" "New upstream release"
 
+    # for each commit message
     while read -r line
     do
-        #echo "${line}"
+        # append a new entry in the changelog
         dch -a "${line}"
     done < <(echo "$msgs")
+    # changelog is prepared, release it.
     dch -r --distribution unstable ""
+
+    debuild
 
     popd > /dev/null
 
@@ -157,9 +161,6 @@ pkg_new_release()
 
 get_previous_version()
 {
-    # local rel=`git tag | grep -e '^\([[:digit:]]\)\{1,2\}.\([[:digit:]]\)\{1,2\}.\([[:digit:]]\)\{1,3\}\(-rc[[:digit:]]\+\)\?$' | 
-    #     sort -r | head -n 2 | xargs | awk -F' ' '{print $2}'`
-
     local rel=`git tag | grep -e '^\([[:digit:]]\)\{1,2\}.\([[:digit:]]\)\{1,2\}.\([[:digit:]]\)\{1,3\}\(-rc[[:digit:]]\+\)\?$' | 
         sort -r | awk '{
             if (system("dpkg --compare-versions "$1" le '${ver}'") == 0)
