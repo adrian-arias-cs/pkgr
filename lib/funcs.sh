@@ -124,6 +124,7 @@ pkg_new_release()
     create_orig_tarball "${pkg}" "${ver}"
 
     prever=`get_previous_version`
+    msgs=`get_commit_msgs_between_two_tags ${prever} ${ver}`
     popd > /dev/null
 
     # unpack debian tarball from previous version into build_dir
@@ -141,11 +142,17 @@ pkg_new_release()
     # the trailing "-1" represents the package build version.
     # this should be incremented each time changes are made to the
     # debian files.
-    dch -v "${version}~${rc}-1"
-    popd > /dev/null
-    # version bump the changelog
+    dch -v "${version}~${rc}-1" "New upstream release"
 
-#    export_ref "${pkg}" "${ver}"
+    while read -r line
+    do
+        #echo "${line}"
+        dch -a "${line}"
+    done < <(echo "$msgs")
+    dch -r --distribution unstable ""
+
+    popd > /dev/null
+
 }
 
 get_previous_version()
@@ -163,6 +170,15 @@ get_previous_version()
 
     echo "${rel}"
     return 0
+}
+
+get_commit_msgs_between_two_tags()
+{
+    if [ $# -ne 2 ]; then
+        die "*** invalid call to get_commit_msgs_between_two_tags() ***"
+    fi
+    range="$1..$2"
+    echo "`git log --format=%s%b ${range}`"
 }
 
 get_commit_msgs_between_two_greatest_tags()
