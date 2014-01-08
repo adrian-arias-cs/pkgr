@@ -167,7 +167,7 @@ pkg_new_release()
 
     # initiate the package build
     # TODO: make passphrase an environment variable/option
-    debuild --source-option=-i'target\/|(?:^|/).*~$|(?:^|/)\.#.*$|(?:^|/)\..*\.sw.$|(?:^|/),,.*(?:$|/.*$)|(?:^|/)(?:DEADJOE|\.arch-inventory|\.(?:bzr|cvs|hg|git)ignore)$|(?:^|/)(?:CVS|RCS|\.deps|\{arch\}|\.arch-ids|\.svn|\.hg(?:tags|sigs)?|_darcs|\.git(?:attributes|modules)?|\.shelf|_MTN|\.be|\.bzr(?:\.backup|tags)?)(?:$|/.*$)' -p'gpg --passphrase connectsolutions'
+    debuild --source-option=-i'version.txt|target\/|(?:^|/).*~$|(?:^|/)\.#.*$|(?:^|/)\..*\.sw.$|(?:^|/),,.*(?:$|/.*$)|(?:^|/)(?:DEADJOE|\.arch-inventory|\.(?:bzr|cvs|hg|git)ignore)$|(?:^|/)(?:CVS|RCS|\.deps|\{arch\}|\.arch-ids|\.svn|\.hg(?:tags|sigs)?|_darcs|\.git(?:attributes|modules)?|\.shelf|_MTN|\.be|\.bzr(?:\.backup|tags)?)(?:$|/.*$)' -p'gpg --passphrase connectsolutions'
 
     popd > /dev/null
 }
