@@ -124,6 +124,9 @@ pkg_new_release()
     create_orig_tarball "${pkg}" "${ver}"
 
     prever=`get_previous_version`
+    if [ -z "${prever}" -o $? -ne 0 ]; then
+        die "*** unable to determine previous version ***"
+    fi
     msgs=`get_commit_msgs_between_two_tags ${prever} ${ver}`
     popd > /dev/null
 
@@ -133,7 +136,12 @@ pkg_new_release()
 
     local pv=`echo "${prever}" | awk -F'-' '{print $1}'`
     local pr=`echo "${prever}" | awk -F'-' '{print $2}'`
-    tar xzvf "${pkg}_${pv}~${pr}-1.debian.tar.gz" -C ${build_dir}/ > /dev/null
+    local debian_tarball="${pkg}_${pv}~${pr}-1.debian.tar.gz"
+    if [ -f "$debian_tarball" ]; then
+        tar xzvf "$debian_tarball" -C ${build_dir}/ > /dev/null
+    else
+        die "*** invalid path to debian tarball ***"
+    fi
 
     popd > /dev/null
 
@@ -150,10 +158,11 @@ pkg_new_release()
         # append a new entry in the changelog
         dch -a "${line}"
     done < <(echo "$msgs")
-    # changelog is prepared, release it.
+    # changelog is prepared, mark is ready for release.
     dch -r --distribution unstable ""
 
-    debuild
+    # initiate the package build
+    debuild --source-option=-i'target\/|(?:^|/).*~$|(?:^|/)\.#.*$|(?:^|/)\..*\.sw.$|(?:^|/),,.*(?:$|/.*$)|(?:^|/)(?:DEADJOE|\.arch-inventory|\.(?:bzr|cvs|hg|git)ignore)$|(?:^|/)(?:CVS|RCS|\.deps|\{arch\}|\.arch-ids|\.svn|\.hg(?:tags|sigs)?|_darcs|\.git(?:attributes|modules)?|\.shelf|_MTN|\.be|\.bzr(?:\.backup|tags)?)(?:$|/.*$)' -p'gpg --passphrase connectsolutions'
 
     popd > /dev/null
 
@@ -161,7 +170,8 @@ pkg_new_release()
 
 get_previous_version()
 {
-    local rel=`git tag | grep -e '^\([[:digit:]]\)\{1,2\}.\([[:digit:]]\)\{1,2\}.\([[:digit:]]\)\{1,3\}\(-rc[[:digit:]]\+\)\?$' | 
+    local rel=''
+    rel=`git tag | grep -e '^\([[:digit:]]\)\{1,2\}.\([[:digit:]]\)\{1,2\}.\([[:digit:]]\)\{1,3\}\(-rc[[:digit:]]\+\)\?$' | 
         sort -r | awk '{
             if (system("dpkg --compare-versions "$1" le '${ver}'") == 0)
             {
@@ -169,6 +179,14 @@ get_previous_version()
             }
         }' | head -n 2 | xargs | awk '{print $2}'`
 
+    # if no previous tagged version use the ref of the initial commit
+    #if [ -z "${rel}" ]; then
+    #    rel=`git rev-list HEAD | tail -n 1`
+    #fi
+
+    if [ -z  "${rel}" ]; then
+        return 1
+    fi
     echo "${rel}"
     return 0
 }
