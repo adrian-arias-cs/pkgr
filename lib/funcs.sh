@@ -136,7 +136,11 @@ pkg_new_release()
 
     local pv=`echo "${prever}" | awk -F'-' '{print $1}'`
     local pr=`echo "${prever}" | awk -F'-' '{print $2}'`
-    local debian_tarball="${pkg}_${pv}~${pr}-1.debian.tar.gz"
+    # find the debian tarball of the previous version's last debian revision 
+    local prdt=`find . -regextype posix-egrep -iregex "(\.\/){1}${pkg}_${pv}~${pr}-([[:digit:]]){1}\.debian\.tar\.gz$" \
+        | sort -r | head -n 1`
+    #local debian_tarball="${pkg}_${pv}~${pr}-1.debian.tar.gz"
+    local debian_tarball=`echo "${prdt}" | awk -F'/' '{print $2}'`
     if [ -f "$debian_tarball" ]; then
         tar xzvf "$debian_tarball" -C ${build_dir}/ > /dev/null
     else
@@ -162,10 +166,10 @@ pkg_new_release()
     dch -r --distribution unstable ""
 
     # initiate the package build
+    # TODO: make passphrase an environment variable/option
     debuild --source-option=-i'target\/|(?:^|/).*~$|(?:^|/)\.#.*$|(?:^|/)\..*\.sw.$|(?:^|/),,.*(?:$|/.*$)|(?:^|/)(?:DEADJOE|\.arch-inventory|\.(?:bzr|cvs|hg|git)ignore)$|(?:^|/)(?:CVS|RCS|\.deps|\{arch\}|\.arch-ids|\.svn|\.hg(?:tags|sigs)?|_darcs|\.git(?:attributes|modules)?|\.shelf|_MTN|\.be|\.bzr(?:\.backup|tags)?)(?:$|/.*$)' -p'gpg --passphrase connectsolutions'
 
     popd > /dev/null
-
 }
 
 get_previous_version()
