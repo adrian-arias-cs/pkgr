@@ -215,5 +215,12 @@ clean_buildroot()
     rm -rf ${BUILDROOT}/*
 }
 
+copy_build_artifacts_to_pkgstore()
+{
+    pushd "${BUILDROOT}" > /dev/null
+    cp -r ./* "${PKGSTORE}"
+    popd > /dev/null
+}
+
 # vim: ts=4 sw=4 expandtab
 
