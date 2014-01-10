@@ -91,6 +91,7 @@ create_orig_tarball()
     fi
 
     local ver_exists=''
+    local orig_tarball=''
 
     check_for_version "${ver}"
     ver_exists=$?
@@ -100,7 +101,13 @@ create_orig_tarball()
     fi
 
     # git archive --prefix=./ --format=tar v0.0.1-rc2 | xz -c > ~/pkgbuild/pentaho-reporting_0.0.1~rc2.orig.tar.xz
-    git archive --prefix=./ --format=tar "${ver}" | xz -c > "${BUILDROOT}/${pkg}_${version}~${rc}.orig.tar.xz"
+    if [ -n "${rc}" ]; then
+        orig_tarball="${BUILDROOT}/${pkg}_${version}~${rc}.orig.tar.xz"
+    else
+        orig_tarball="${BUILDROOT}/${pkg}_${version}.orig.tar.xz"
+    fi
+
+    git archive --prefix=./ --format=tar "${ver}" | xz -c > "${orig_tarball}"
 }
 
 # function for creating packages for next upstream release
@@ -137,7 +144,7 @@ pkg_new_release()
     local pv=`echo "${prever}" | awk -F'-' '{print $1}'`
     local pr=`echo "${prever}" | awk -F'-' '{print $2}'`
     # find the debian tarball of the previous version's last debian revision 
-    local prdt=`find . -regextype posix-egrep -iregex "(\.\/){1}${pkg}_${pv}~${pr}-([[:digit:]]){1}\.debian\.tar\.gz$" \
+    local prdt=`find . -regextype posix-egrep -iregex "(\.\/){1}${pkg}_${pv}(~${pr})?-([[:digit:]]){1}\.debian\.tar\.gz$" \
         | sort -r | head -n 1`
     #local debian_tarball="${pkg}_${pv}~${pr}-1.debian.tar.gz"
     local debian_tarball=`echo "${prdt}" | awk -F'/' '{print $2}'`
@@ -154,7 +161,11 @@ pkg_new_release()
     # the trailing "-1" represents the package build version.
     # this should be incremented each time changes are made to the
     # debian files.
-    dch -v "${version}~${rc}-1" "New upstream release"
+    if [ -n "${rc}" ]; then
+        dch -v "${version}~${rc}-1" "New upstream release"
+    else
+        dch -v "${version}-1" "New upstream release"
+    fi
 
     # for each commit message
     while read -r line
