@@ -1,0 +1,115 @@
+#!/bin/bash
+
+[[ -n $DEBUG ]] && DEBUG=$DEBUG || DEBUG=0
+
+die()
+{
+    local frame=0
+
+    echo "$*"
+
+    if [ -n ${DEBUG} ] && [ ${DEBUG} -eq 1 ]; then
+        while caller $frame; do
+            ((frame++))
+        done
+    fi
+
+    exit 1
+}
+
+usage()
+{
+cat << EOF
+Usage: $0 options 
+
+This script generated either debian or rpm packages from projects in git source control.
+
+OPTIONS:
+ -h|--help                                      Show this message
+ -t[package type]|--type[=package type] 	Specify the package type, either 'rpm' or 'deb'
+ -n|--new                                       Build a first release package
+EOF
+}
+
+if [[ $DEBUG -eq 1 ]]; then
+    ARGS=`getopt -o t::nh --long type::,new,help -n "$0" -- "$@"`
+else
+    ARGS=`getopt -o t::nh --long type::,new,help -n "$0" -q -- "$@"`
+fi
+
+eval set -- "$ARGS"
+
+PKGTYPE='deb'
+IS_NEW=0
+
+while true; do
+    case "$1" in
+        -t|--type)
+            case "$2" in
+                ""|deb|debian) PKGTYPE='deb'; shift 2;;
+                rpm) PKGTYPE='rpm'; shift 2;;
+                *) echo "Invalid package type. See $0 -h for more info."; exit 2;;
+            esac ;;
+        -n|--new)
+            IS_NEW=1; shift;;
+        -h|--help)
+            usage; exit 1;;
+        --)
+            shift;
+            # we don't break
+            #break
+            ;;
+        -?)
+            usage; exit 1;;
+        *)
+            the_rest=$@
+            break;;
+    esac
+done
+
+# The remaining arguments should represent the project and the version to be packaged.
+# Attempt to capture the project name and version string regardless of their order.
+f1=`echo "${the_rest}" | awk -F' ' '{print $1}'`
+f2=`echo "${the_rest}" | awk -F' ' '{print $2}'`
+if [[ "${f1}" =~ ^([0-9]){1,2}\.([0-9]){1,2}\.([0-9]){1,3}(-rc([0-9]){1,2})?$ ]]; then
+    version_string=${f1}
+    project_name=${f2}
+elif [[ "${f2}" =~ ^([0-9]){1,2}\.([0-9]){1,2}\.([0-9]){1,3}(-rc([0-9]){1,2})?$ ]]; then
+    version_string=${f2}
+    project_name=${f1}
+fi
+
+if [ -n "${version_string}" -a -n "${project_name}" ]; then
+    if [[ ! "${project_name}" =~ ^([A-Za-z0-9._-])+$ ]]; then
+        echo "The project name \"${project_name}\" seems to be invalid"
+        exit 3
+    fi
+else
+    if [ -z "${version_string}" ]; then
+        echo 'unable to determine version string'
+    elif [ -z "${project_name}" ]; then
+        echo 'unable to determine project name'
+    fi
+    usage
+    exit 3
+fi
+
+if [ $IS_NEW -eq 1 ]; then
+    echo 'Building package from initial release'
+    echo 'A description is necessary'
+    #die "*** a new package was specified but a description was not provided ***"
+    #exit 4
+    # TODO: check for -d|--description flag or read from sdtin
+    # read
+fi
+
+case ${PKGTYPE} in
+    deb)
+        echo 'building debian package'
+        . ./lib/pkgdeb.sh "${project_name}" "${version_string}"
+        ;;
+    rpm) echo 'building rpm package';;
+esac
+
+# vim: ts=4 sw=4 expandtab
+

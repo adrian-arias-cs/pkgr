@@ -29,7 +29,8 @@ die()
     exit 1
 }
 
-# 2 areguments required.
+# 2 arguments required.
+# TODO: add more strice parameter validation. Check for empty strings.
 if [ $# -ne 2 ]; then
     print_usage
 else
