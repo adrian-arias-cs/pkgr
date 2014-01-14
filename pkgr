@@ -146,10 +146,10 @@ fi
 
 case ${PKGTYPE} in
     deb)
-        echo 'building debian package'
+        echo 'Packaging for Debian-based distros.'
         . ./lib/pkgdeb.sh "${project_name}" "${version_string}"
         ;;
-    rpm) echo 'building rpm package';;
+    rpm) echo 'Packaging for RedHat-based distros.';;
 esac
 
 # vim: ts=4 sw=4 expandtab

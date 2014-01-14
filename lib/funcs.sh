@@ -75,6 +75,7 @@ export_ref()
     local ver_exists=$?
 
     if [ $ver_exists -ne 0 ]; then
+        clean_buildroot
         die "*** specified version is not a branch or tag ***"
     fi
     
@@ -87,6 +88,7 @@ export_ref()
 create_orig_tarball()
 {
     if [ $# -ne 2 ]; then
+        clean_buildroot
         die "*** invalid call to create_orig_tarball() ***"
     fi
 
@@ -97,6 +99,7 @@ create_orig_tarball()
     ver_exists=$?
 
     if [ $ver_exists -ne 0 ]; then
+        clean_buildroot
         die "*** specified version is not a branch or tag ***"
     fi
 
@@ -124,6 +127,7 @@ pkg_new_release()
     local pkgsrcdir="${SOURCESDIR}/${pkg}"
 
     if [ ! -d "${pkgsrcdir}" ]; then
+        clean_buildroot
         die "*** Either the specified project or it's source directory doesn't exist. ***"
     fi
     pushd "${pkgsrcdir}" > /dev/null
@@ -136,6 +140,7 @@ pkg_new_release()
 
     prever=`get_previous_version`
     if [ -z "${prever}" -o $? -ne 0 ]; then
+        clean_buildroot
         die "*** unable to determine previous version ***"
     fi
     msgs=`get_commit_msgs_between_two_tags ${prever} ${ver}`
@@ -155,7 +160,8 @@ pkg_new_release()
     if [ -f "$debian_tarball" ]; then
         tar xzvf "$debian_tarball" -C ${build_dir}/ > /dev/null
     else
-        die "*** invalid path to debian tarball ***"
+        clean_buildroot
+        die "*** Invalid path to debian tarball. Ensure the initial release is available in ${PKGSTORE} ***"
     fi
 
     popd > /dev/null
@@ -213,6 +219,7 @@ get_previous_version()
 get_commit_msgs_between_two_tags()
 {
     if [ $# -ne 2 ]; then
+        clean_buildroot
         die "*** invalid call to get_commit_msgs_between_two_tags() ***"
     fi
     range="$1..$2"
