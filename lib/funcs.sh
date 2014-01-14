@@ -121,8 +121,12 @@ pkg_new_release()
     local ver="$2"
     local aptrc=''
     local prever=''
+    local pkgsrcdir="${SOURCESDIR}/${pkg}"
 
-    pushd "${SOURCESDIR}/${pkg}" > /dev/null
+    if [ ! -d "${pkgsrcdir}" ]; then
+        die "*** Either the specified project or it's source directory doesn't exist. ***"
+    fi
+    pushd "${pkgsrcdir}" > /dev/null
 
     # export version to build_dir
     export_ref "${pkg}" "${ver}"

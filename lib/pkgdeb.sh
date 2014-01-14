@@ -1,38 +1,15 @@
 #!/bin/bash
 
 BUILDROOT='/tmp/pkgbuild'
-PKGSTORE='/home/pkgr/pkgstore'
+PKGSTORE='/tmp/pkgr/pkgstore/deb'
 SOURCESDIR='/home/pkgr/source'
-
-[[ -n $DEBUG ]] && DEBUG=$DEBUG || DEBUG=0
 
 . ./lib/funcs.sh
 
-print_usage()
-{
-    echo -e "`basename $0`: Incorrect usage"
-    echo -e "`basename $0` <project name> <branch or tag>"
-}
-
-die()
-{
-    local frame=0
-
-    echo "$*"
-
-    if [ -n ${DEBUG} ] && [ ${DEBUG} -eq 1 ]; then
-        while caller $frame; do
-            ((frame++))
-        done
-    fi
-
-    exit 1
-}
-
 # 2 arguments required.
-# TODO: add more strice parameter validation. Check for empty strings.
+# TODO: add more strict parameter validation. Check for empty strings.
 if [ $# -ne 2 ]; then
-    print_usage
+    die "*** invalid invocation of ${BASH_SOURCE[0]} *** \nTwo arguments are required (project name and version)\n"
 else
     pkg=$1
     ver=$2
@@ -57,9 +34,11 @@ else
         rm -rf ${build_dir}/*
     fi
 
-#    create_deb_pkg "${pkg}" "${ver}"
-
-    pkg_new_release "${pkg}" "${ver}"
+    if [ $IS_NEW -eq 1 ]; then
+        create_deb_pkg "${pkg}" "${ver}"
+    else
+        pkg_new_release "${pkg}" "${ver}"
+    fi
 
     copy_build_artifacts_to_pkgstore
 

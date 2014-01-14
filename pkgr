@@ -20,27 +20,41 @@ die()
 usage()
 {
 cat << EOF
-Usage: $0 options 
 
-This script generated either debian or rpm packages from projects in git source control.
+Usage: $0 options project_name version_string
+
+This script generates either debian or rpm packages (source and binary) from projects in git source control.
 
 OPTIONS:
  -h|--help                                      Show this message
  -t[package type]|--type[=package type] 	Specify the package type, either 'rpm' or 'deb'
  -n|--new                                       Build a first release package
+ -d|--description                               Description of the project
+
+PARAMETERS:
+ project_name                                   The name of the project (as it is in the VCS)
+ version_string                                 The version to package (must be a tagged release)
+
 EOF
 }
 
-if [[ $DEBUG -eq 1 ]]; then
-    ARGS=`getopt -o t::nh --long type::,new,help -n "$0" -- "$@"`
-else
-    ARGS=`getopt -o t::nh --long type::,new,help -n "$0" -q -- "$@"`
+if [ $# -lt 2 ]; then
+    echo 'At least two parameters are required (project_name and version_string).'
+    usage; exit 1
 fi
 
+if [[ $DEBUG -eq 1 ]]; then
+    ARGS=`getopt -o t::ndh --long type::,new,description:,help -n "$0" -- "$@"`
+else
+    ARGS=`getopt -o t::ndh --long type::,new,description:help -n "$0" -q -- "$@"`
+fi
+
+# escape whitespace in arguments
 eval set -- "$ARGS"
 
 PKGTYPE='deb'
 IS_NEW=0
+DESCRIPTION=''
 
 while true; do
     case "$1" in
@@ -52,39 +66,66 @@ while true; do
             esac ;;
         -n|--new)
             IS_NEW=1; shift;;
+        -d|--description)
+            DESCRIPTION="$2"; shift 2;;
         -h|--help)
             usage; exit 1;;
         --)
             shift;
-            # we don't break
+            # we don't break here because we expect two additional parameters.
             #break
             ;;
-        -?)
-            usage; exit 1;;
         *)
             the_rest=$@
             break;;
     esac
 done
 
+# Split the remaining parameters by space and into an array.
+IFS=' ' read -a PARAMS <<< "$the_rest"
+# The remaining arguments should contain exactly two strings.
+# Additional parameters detected.
+if [ ${#PARAMS[@]} -gt 2 ]; then
+    invalid_count=`expr ${#PARAMS[@]} - 2`
+    invalid_params=''
+    if [ $invalid_count -eq 1 ]; then
+        word_for_param='parameter'
+    else
+        word_for_param='parameters'
+    fi
+    echo "${invalid_count} superfluous ${word_for_param} detected."
+    echo "Inspect the output and try again using appropriate parameters."
+    for index in "${!PARAMS[@]}"
+    do
+        invalid_params="${invalid_params} ${PARAMS[index]}"
+    done
+    echo "${invalid_params}"
+    usage; exit 1
+# Insufficient number of parameters detected
+elif [ "${#PARAMS[@]}" -lt 2 ]; then
+    echo 'At least two parameters are required (project_name and version_string).'
+    usage; exit 1
 # The remaining arguments should represent the project and the version to be packaged.
 # Attempt to capture the project name and version string regardless of their order.
-f1=`echo "${the_rest}" | awk -F' ' '{print $1}'`
-f2=`echo "${the_rest}" | awk -F' ' '{print $2}'`
-if [[ "${f1}" =~ ^([0-9]){1,2}\.([0-9]){1,2}\.([0-9]){1,3}(-rc([0-9]){1,2})?$ ]]; then
-    version_string=${f1}
-    project_name=${f2}
-elif [[ "${f2}" =~ ^([0-9]){1,2}\.([0-9]){1,2}\.([0-9]){1,3}(-rc([0-9]){1,2})?$ ]]; then
-    version_string=${f2}
-    project_name=${f1}
+else
+    for index in "${!PARAMS[@]}"
+    do
+        if [[ "${PARAMS[index]}" =~ ^([0-9]){1,2}\.([0-9]){1,2}\.([0-9]){1,3}(-rc([0-9]){1,2})?$ ]]; then
+            version_string="${PARAMS[index]}"
+        else
+            project_name=${PARAMS[index]}
+        fi
+    done
 fi
 
 if [ -n "${version_string}" -a -n "${project_name}" ]; then
+    # validate string provided as project name
     if [[ ! "${project_name}" =~ ^([A-Za-z0-9._-])+$ ]]; then
         echo "The project name \"${project_name}\" seems to be invalid"
         exit 3
     fi
 else
+    # If version_string is zero-length then it was not matched previously.
     if [ -z "${version_string}" ]; then
         echo 'unable to determine version string'
     elif [ -z "${project_name}" ]; then
@@ -96,11 +137,11 @@ fi
 
 if [ $IS_NEW -eq 1 ]; then
     echo 'Building package from initial release'
-    echo 'A description is necessary'
-    #die "*** a new package was specified but a description was not provided ***"
-    #exit 4
-    # TODO: check for -d|--description flag or read from sdtin
-    # read
+    if [ -z "${DESCRIPTION}" ]; then
+        # TODO: read descript from input
+        echo 'A description is necessary'
+        exit 4
+    fi
 fi
 
 case ${PKGTYPE} in
