@@ -34,15 +34,26 @@ else
         rm -rf ${build_dir}/*
     fi
 
+    pkgsrcdir="${SOURCESDIR}/${pkg}"
+
+    if [ ! -d "${pkgsrcdir}" ]; then
+        clean_buildroot
+        die "*** Either the specified project or it's source directory doesn't exist. ***"
+    fi
+
+    pushd "${pkgsrcdir}" > /dev/null
+
     if [ $IS_NEW -eq 1 ]; then
         create_deb_pkg "${pkg}" "${ver}"
     else
         pkg_new_release "${pkg}" "${ver}"
     fi
+ 
+    popd > /dev/null
 
-    copy_build_artifacts_to_pkgstore
+    #copy_build_artifacts_to_pkgstore
 
-    clean_buildroot
+    #clean_buildroot
 fi
 
 # vim: ts=4 sw=4 expandtab

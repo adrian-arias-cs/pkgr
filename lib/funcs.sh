@@ -19,6 +19,26 @@ create_deb_pkg()
     
     rm .gitignore debian/*.{ex,EX} debian/README.*
 
+    ex /tmp/debian/control <<-EOEX
+    :%s/^Section:\s\{1}.*$/Section: ${SECTION}
+    :%s,^Homepage:\s\{1}.*$,Homepage: ${HOMEPAGE}
+    :wq
+EOEX
+
+    local d_line=$(ex /tmp/debian/control <<-EOEX
+    /^Depends:
+    :.p
+EOEX
+)
+    local misc_deps=`echo $d_line | awk -F': ' '{print $2}'`
+#    echo "$poo" 
+    depends="$misc_deps, $RUNTIME_DEPS"
+    #echo "$depends"
+    ex /tmp/debian/control <<-EOEX
+    :%s/^Depends:\s\{1}.*$/Depends: ${depends}
+    :wq
+EOEX
+
     # drop in templated versions of control, install, changelog and copyright
     # debuild
 
@@ -124,13 +144,6 @@ pkg_new_release()
     local ver="$2"
     local aptrc=''
     local prever=''
-    local pkgsrcdir="${SOURCESDIR}/${pkg}"
-
-    if [ ! -d "${pkgsrcdir}" ]; then
-        clean_buildroot
-        die "*** Either the specified project or it's source directory doesn't exist. ***"
-    fi
-    pushd "${pkgsrcdir}" > /dev/null
 
     # export version to build_dir
     export_ref "${pkg}" "${ver}"
@@ -144,7 +157,6 @@ pkg_new_release()
         die "*** unable to determine previous version ***"
     fi
     msgs=`get_commit_msgs_between_two_tags ${prever} ${ver}`
-    popd > /dev/null
 
     # unpack debian tarball from previous version into build_dir
 

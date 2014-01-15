@@ -39,11 +39,12 @@ OPTIONS:
  -t[package type]|--type[=package type] 	Specify the package type, either 'rpm' or 'deb'
  -n|--new                                       Build a first release package
  -d|--description                               Description of the project
- --dependencies='dep1, dep2, ...'               Comma seperated list of runtime dependencies
+ --runtime_deps='dep1, dep2, ...'               Comma seperated list of runtime dependencies
  --build-deps='dep1, dep2, ...'                 Comma seperated list of build dependencies
  --packager-name=<packager_name>                Name of the package maintainer
  --packager-email=<packager_email>              Email address of the package maintainer
  -i<iteration>|--iteration=<iteration>          The package revision
+ -s<section>|--section=<section>                The section, group or category of this package
  --rules-file                                   The file to use for debian/rules (for overriding buildsystem sequences -- only debian)
  --install-file                                 List of files to install (debian only -- see man pkgr for example)
 
@@ -55,9 +56,9 @@ EOF
 }
 
 if [[ $DEBUG -eq 1 ]]; then
-    ARGS=`getopt -o t::ndh --long type::,new,description:,help -n "$0" -- "$@"`
+    ARGS=`getopt -o t::nd::s::h --long type::,new,description::,help,runtime-deps::,homepage::,section:: -n "$0" -- "$@"`
 else
-    ARGS=`getopt -o t::ndh --long type::,new,description:help -n "$0" -q -- "$@"`
+    ARGS=`getopt -o t::nd::s::h --long type::,new,description::,help,runtime-deps::,homepage::,section:: -n "$0" -q -- "$@"`
 fi
 
 # escape whitespace in arguments
@@ -82,6 +83,12 @@ while true; do
             IS_NEW=1; shift;;
         -d|--description)
             DESCRIPTION="$2"; shift 2;;
+        --runtime-deps)
+            RUNTIME_DEPS="$2"; shift 2;;
+        --homepage)
+            HOMEPAGE="$2"; shift 2;;
+        -s|--section)
+            SECTION="$2"; shift 2;;
         -h|--help)
             usage; exit $OK;;
         --)
@@ -96,11 +103,10 @@ while true; do
 done
 
 the_rest=$@
-
-if [ $# -lt 2 ]; then
-    echo 'At least two parameters are required (project_name and version_string).'
-    usage; exit $INVALID_OPTS
-fi
+#if [ $# -lt 2 ]; then
+#    echo 'At least two parameters are required (project_name and version_string).'
+#    usage; exit $INVALID_OPTS
+#fi
 
 # Split the remaining parameters by space and into an array.
 IFS=' ' read -a PARAMS <<< "$the_rest"
@@ -159,7 +165,6 @@ fi
 if [ $IS_NEW -eq 1 ]; then
     echo 'Building package from initial release'
     if [ -z "${DESCRIPTION}" ]; then
-        # TODO: read descript from input
         echo 'A description is necessary'
         exit $INVALID_PARAMS
     fi
