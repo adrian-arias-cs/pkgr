@@ -14,7 +14,7 @@ There are two processes for building packages. Building "new" packages refers to
 
 For rpm packages the same bits of information are required. The difference being, they are added to a single file (the spec file).
 
-The following list outlines the required tid-bits for generating the inital package.
+The following list outlines the required tid-bits for generating the initial package.
 
 * project name
 * dependencies
@@ -45,9 +45,9 @@ Usage
 Options
 ----------
 	-h|--help                                      Show this message
-	-t[package type]|--type[=package type]     Specify the package type, either 'rpm' or 'deb'. The default is deb.
+	-t[package type]|--type[=package type]         Specify the package type, either 'rpm' or 'deb'. The default is deb.
 	-n|--new                                       Build a first release package
-	-d|--description[description]                       Description of the project. If no description is provided it will be prompted for.
+	-d|--description[description]                  Description of the project. If no description is provided it will be prompted for.
 
 Parameters:
 	project_name                                   The name of the project (as it is in the VCS)

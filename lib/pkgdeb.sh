@@ -19,14 +19,25 @@ else
     fi
 
     # check for rc version
-    if [[ "${ver}" =~ ^([0-9]){1,2}\.([0-9]){1,2}\.([0-9]){1,3}-rc([0-9]){1,2}$ ]]; then
+    if [[ "${ver}" =~ ^(v)?([0-9]){1,2}\.([0-9]){1,2}\.([0-9]){1,3}-rc([0-9]){1,2}$ ]]; then
         version=`echo "${ver}" | awk -F'-' '{print $1}'`
+        # if the version string begins with a lower-case 'v'
+        if [ `echo ${version:0:1}` = 'v' ]; then
+            # set version to remainder of string after position 1 (drop the v)
+            version=`echo ${version:1}`
+        fi
         rc=`echo "${ver}" | awk -F'-' '{print $2}'`
         build_dir="${BUILDROOT}/${pkg}-${version}~${rc}"
     else
         version="${ver}"
+        # if the version string begins with a lower-case 'v'
+        if [ `echo ${version:0:1}` = 'v' ]; then
+            # set version to remainder of string after position 1 (drop the v)
+            version=`echo ${version:1}`
+        fi
         build_dir="${BUILDROOT}/${pkg}-${version}"
     fi
+    
     
     if [ ! -d "${build_dir}" ]; then
         mkdir ${build_dir}

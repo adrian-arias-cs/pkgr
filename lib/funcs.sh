@@ -9,6 +9,8 @@ create_deb_pkg()
     local pkg="$1"
     local ver="$2"
 
+    local controlfile="${build_dir}/debian/control"
+
     export_ref "${pkg}" "${ver}"
 
     # finish building package from scratch
@@ -19,13 +21,13 @@ create_deb_pkg()
     
     rm .gitignore debian/*.{ex,EX} debian/README.*
 
-    ex /tmp/debian/control <<-EOEX
+    ex "${controlfile}" <<-EOEX
     :%s/^Section:\s\{1}.*$/Section: ${SECTION}
     :%s,^Homepage:\s\{1}.*$,Homepage: ${HOMEPAGE}
     :wq
 EOEX
 
-    local d_line=$(ex /tmp/debian/control <<-EOEX
+    local d_line=$(ex ${controlfile} <<-EOEX
     /^Depends:
     :.p
 EOEX
@@ -34,13 +36,37 @@ EOEX
 #    echo "$poo" 
     depends="$misc_deps, $RUNTIME_DEPS"
     #echo "$depends"
-    ex /tmp/debian/control <<-EOEX
+    ex ${controlfile} <<-EOEX
     :%s/^Depends:\s\{1}.*$/Depends: ${depends}
     :wq
 EOEX
 
+    local desc_lines=$( echo "${DESCRIPTION}" | fold -s )
+    declare -a lines
+    local i=1
+
+    while read line
+    do
+        lines[$i]=${line}
+        ((i++))
+    done <<< "${desc_lines}"
+
+    for line in "${!lines[@]}"
+    do
+        if [ $line -eq 1 ]; then
+            # if the first line of the descript search and replace ^Description: with proper value
+            ex "${controlfile}" <<-EOEX
+            :%s/^Description:\s\{1}.*$/Description: ${lines[$line]}
+            :wq
+EOEX
+        else
+            # or else, append the line
+            echo " ${lines[$line]}" >> ${controlfile}
+        fi
+    done
+
     # drop in templated versions of control, install, changelog and copyright
-    # debuild
+    debuild
 
     return 0
 }
