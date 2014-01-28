@@ -13,8 +13,6 @@ create_deb_pkg()
 
     export_ref "${pkg}" "${ver}"
 
-    # finish building package from scratch
-
     pushd "${build_dir}" > /dev/null
 
     dh_make --yes --indep --createorig
@@ -51,19 +49,24 @@ EOEX
         ((i++))
     done <<< "${desc_lines}"
 
-    for line in "${!lines[@]}"
-    do
-        if [ $line -eq 1 ]; then
-            # if the first line of the descript search and replace ^Description: with proper value
-            ex "${controlfile}" <<-EOEX
-            :%s/^Description:\s\{1}.*$/Description: ${lines[$line]}
-            :wq
+    # if there is only one line in the folded (80 column) description
+    if [ ${#line} -eq 1 ]; then
+        
+    else
+        for line in "${!lines[@]}"
+        do
+            if [ $line -eq 1 ]; then
+                # if the first line of the descript search and replace ^Description: with proper value
+                ex "${controlfile}" <<-EOEX
+                :%s/^Description:\s\{1}.*$/Description: ${lines[$line]}
+                :wq
 EOEX
-        else
-            # or else, append the line
-            echo " ${lines[$line]}" >> ${controlfile}
-        fi
-    done
+            else
+                # or else, append the line
+                echo " ${lines[$line]}" >> ${controlfile}
+            fi
+        done
+    fi
 
     # drop in templated versions of control, install, changelog and copyright
     debuild
