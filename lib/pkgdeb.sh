@@ -62,9 +62,9 @@ else
  
     popd > /dev/null
 
-    #copy_build_artifacts_to_pkgstore
+    copy_build_artifacts_to_pkgstore
 
-    #clean_buildroot
+    clean_buildroot
 fi
 
 # vim: ts=4 sw=4 expandtab

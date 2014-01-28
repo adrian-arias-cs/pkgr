@@ -177,7 +177,8 @@ pkg_new_release()
     # create lzma compressed tarball of orig upstream release
     create_orig_tarball "${pkg}" "${ver}"
 
-    prever=`get_previous_version`
+    prever=`get_previous_version ${ver}`
+
     if [ -z "${prever}" -o $? -ne 0 ]; then
         clean_buildroot
         die "*** unable to determine previous version ***"
@@ -233,23 +234,38 @@ pkg_new_release()
 
 get_previous_version()
 {
+    # this function requires only 1 parameter, the version string to operate on
+    if [ $# -ne 1 ]; then
+        die "*** invalid call to get_previous_version() ***"
+    fi
+
     local rel=''
-    rel=`git tag | grep -e '^\([[:digit:]]\)\{1,2\}.\([[:digit:]]\)\{1,2\}.\([[:digit:]]\)\{1,3\}\(-rc[[:digit:]]\+\)\?$' | 
-        sort -r | awk '{
+    local ver=''
+
+    # normalize input parameter.
+    if [ `echo ${1:0:1}` = "v" ]; then
+        ver=${1:1}
+    else
+        ver=${1}
+    fi
+
+    # get a list of tags matching the supporting format, sort numerically,
+    # strip out any preceding 'v' characters, print only the releases less than
+    # the value of the version parameter (less the 'v'), and print the second item.
+    rel=`git tag | grep -e '^\(v\)\?\([[:digit:]]\)\{1,2\}.\([[:digit:]]\)\{1,2\}.\([[:digit:]]\)\{1,3\}\(-rc[[:digit:]]\+\)\?$' |
+        sort -r | tr -d 'v' | awk '{
             if (system("dpkg --compare-versions "$1" le '${ver}'") == 0)
             {
                     print $1
             }
         }' | head -n 2 | xargs | awk '{print $2}'`
 
-    # if no previous tagged version use the ref of the initial commit
-    #if [ -z "${rel}" ]; then
-    #    rel=`git rev-list HEAD | tail -n 1`
-    #fi
-
+    # if the captured value is a null string, indicate faulure.
     if [ -z  "${rel}" ]; then
         return 1
     fi
+
+    # echo here to return the value to the variable assignment used by the callee
     echo "${rel}"
     return 0
 }

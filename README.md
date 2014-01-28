@@ -40,7 +40,9 @@ Usage
 *<project_name>* corresponds with the name of the project in git and the directory in which the project is in.
 *<version_string* must match one of the following formats:
     0.0.1
+    v0.0.1
     0.0.1-rc1
+    v0.0.1-rc1
 
 Options
 ----------
