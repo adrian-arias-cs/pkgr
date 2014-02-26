@@ -1,7 +1,7 @@
 #!/bin/bash
 
 BUILDROOT='/tmp/pkgbuild'
-PKGSTORE='/tmp/pkgr/pkgstore/deb'
+PKGSTORE='/tmp/pkgstore/deb'
 SOURCESDIR='/home/pkgr/source'
 
 . ./lib/funcs.sh

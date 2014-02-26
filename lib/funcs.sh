@@ -189,12 +189,18 @@ pkg_new_release()
 
     pushd ${PKGSTORE}/ > /dev/null
 
-    local pv=`echo "${prever}" | awk -F'-' '{print $1}'`
+    local pv=`echo "${prever}" | awk -F'-' '{print $1}' | tr -d v`
     local pr=`echo "${prever}" | awk -F'-' '{print $2}'`
+    local pattern=''
+
+    if [ -z "${pr}" ]; then
+        pattern="(\.\/){1}${pkg}_${pv}-([[:digit:]]){1}\.debian\.tar\.gz$"
+    else
+        pattern="(\.\/){1}${pkg}_${pv}(~${pr})?-([[:digit:]]){1}\.debian\.tar\.gz$"
+    fi
+
     # find the debian tarball of the previous version's last debian revision 
-    local prdt=`find . -regextype posix-egrep -iregex "(\.\/){1}${pkg}_${pv}(~${pr})?-([[:digit:]]){1}\.debian\.tar\.gz$" \
-        | sort -r | head -n 1`
-    #local debian_tarball="${pkg}_${pv}~${pr}-1.debian.tar.gz"
+    local prdt=`find . -regextype posix-egrep -iregex "${pattern}" | sort -r | head -n 1`
     local debian_tarball=`echo "${prdt}" | awk -F'/' '{print $2}'`
     if [ -f "$debian_tarball" ]; then
         tar xzvf "$debian_tarball" -C ${build_dir}/ > /dev/null
@@ -266,7 +272,11 @@ get_previous_version()
     fi
 
     # echo here to return the value to the variable assignment used by the callee
-    echo "${rel}"
+    if [ `echo ${1:0:1}` = "v" ]; then
+        echo "v${rel}"
+    else
+        echo "${rel}"
+    fi
     return 0
 }
 
